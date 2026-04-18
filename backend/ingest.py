@@ -1,21 +1,30 @@
 import os
 import hashlib
 from dotenv import load_dotenv
+
 from langchain_community.document_loaders import PyPDFLoader, TextLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_openai import OpenAIEmbeddings
 from langchain_community.vectorstores import FAISS
+
+# ✅ REPLACED OpenAI WITH HUGGINGFACE
+from langchain_huggingface import HuggingFaceEmbeddings
+
+from config import (
+    DATA_PATH,
+    VECTOR_STORE_PATH,
+    EMBEDDING_MODEL_NAME,
+    CHUNK_SIZE,
+    CHUNK_OVERLAP,
+    REQUIRED_FOLDERS,
+)
 
 load_dotenv()
 
-# _ensure_folders_exist()
-
-DATA_PATH = "documents/"
-DB_PATH = "vector_store/"
+DB_PATH = VECTOR_STORE_PATH
 
 
 def _ensure_folders_exist():
-    folders = [DATA_PATH.rstrip("/"), DB_PATH.rstrip("/")]
+    folders = [folder.rstrip("/") for folder in REQUIRED_FOLDERS]
     for folder in folders:
         if not os.path.exists(folder):
             try:
@@ -23,21 +32,6 @@ def _ensure_folders_exist():
             except OSError as e:
                 raise RuntimeError(f"Failed to create folder '{folder}': {e}")
 
-try:
-    _ensure_folders_exist()
-except RuntimeError as e:
-    print(f"❌ Error: {e}")
-    exit(1)
-
-
-def _validate_openai_api_key():
-    api_key = os.getenv("OPENAI_API_KEY")
-    if not api_key:
-        raise RuntimeError(
-            "Missing OPENAI_API_KEY. Add a valid key to .env and rerun:\n"
-            "    OPENAI_API_KEY=sk-...\n"
-            "Do not commit your API key to source control."
-        )
 
 def get_file_hash(path):
     try:
@@ -50,7 +44,7 @@ def get_file_hash(path):
 
 def load_documents():
     docs = []
-    
+
     if not os.path.exists(DATA_PATH):
         raise RuntimeError(f"Documents folder not found: {DATA_PATH}")
     
@@ -60,7 +54,7 @@ def load_documents():
 
     for file in files:
         path = os.path.join(DATA_PATH, file)
-        
+
         if not os.path.isfile(path):
             continue
 
@@ -85,7 +79,7 @@ def load_documents():
 
             docs.extend(loaded_docs)
             print(f"✅ Loaded {len(loaded_docs)} pages from {file}")
-            
+
         except Exception as e:
             raise RuntimeError(f"Failed to load document '{file}': {e}")
 
@@ -101,11 +95,11 @@ def split_documents(documents):
             raise ValueError("No documents provided to split")
         
         splitter = RecursiveCharacterTextSplitter(
-            chunk_size=800,     # tuned
-            chunk_overlap=150   # tuned
+            chunk_size=CHUNK_SIZE,
+            chunk_overlap=CHUNK_OVERLAP
         )
         chunks = splitter.split_documents(documents)
-        
+
         if not chunks:
             raise ValueError("No chunks were created from documents")
         
@@ -116,19 +110,18 @@ def split_documents(documents):
 
 
 def create_vector_store(chunks):
-    try:
-        _validate_openai_api_key()
-    except RuntimeError as e:
-        raise RuntimeError(f"API Key validation failed: {e}")
-    
     if not chunks:
         raise ValueError("No chunks provided to create vector store")
     
     try:
-        print("🔄 Creating embeddings... (this may take a few minutes)")
-        embeddings = OpenAIEmbeddings()
+        print("🔄 Creating embeddings using SentenceTransformers...")
+        # ✅ FREE LOCAL MODEL
+        embeddings = HuggingFaceEmbeddings(
+            model_name=EMBEDDING_MODEL_NAME
+        )
+
     except Exception as e:
-        raise RuntimeError(f"Failed to initialize OpenAI embeddings: {e}")
+        raise RuntimeError(f"Failed to initialize embeddings: {e}")
 
     try:
         if not os.path.exists(DB_PATH):
@@ -148,19 +141,21 @@ if __name__ == "__main__":
     try:
         print("🚀 Starting document ingestion process...\n")
         
+        _ensure_folders_exist()
+
         print("📂 Loading documents...")
         docs = load_documents()
         print(f"✅ Loaded {len(docs)} pages\n")
-        
+
         print("✂️  Splitting documents into chunks...")
         chunks = split_documents(docs)
         print(f"✅ Created {len(chunks)} chunks\n")
-        
+
         print("🔧 Creating vector store...")
         create_vector_store(chunks)
-        
-        print("\n✅ Improved Vector DB ready!")
-        
+
+        print("\n✅ Vector DB ready (FREE MODE)!")
+
     except RuntimeError as e:
         print(f"\n❌ Error: {e}")
         exit(1)

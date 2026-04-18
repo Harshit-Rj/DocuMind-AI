@@ -1,6 +1,11 @@
 from sklearn.metrics.pairwise import cosine_similarity
-import numpy as np
-from langchain_openai import OpenAIEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings
+
+from config import (
+    EMBEDDING_MODEL_NAME,
+    EVALUATION_GOOD_THRESHOLD,
+    EVALUATION_AVERAGE_THRESHOLD,
+)
 
 def cosine_score(answer, ground_truth):
     try:
@@ -10,7 +15,7 @@ def cosine_score(answer, ground_truth):
         raise RuntimeError(f"Invalid input: {e}")
     
     try:
-        emb = OpenAIEmbeddings()
+        emb = HuggingFaceEmbeddings(model_name=EMBEDDING_MODEL_NAME)
     except Exception as e:
         raise RuntimeError(f"Failed to initialize embeddings: {e}")
     
@@ -34,9 +39,9 @@ def simple_eval(answer, ground_truth):
         raise RuntimeError(f"Evaluation failed: {e}")
 
     try:
-        if score > 0.8:
+        if score > EVALUATION_GOOD_THRESHOLD:
             return "Good"
-        elif score > 0.6:
+        elif score > EVALUATION_AVERAGE_THRESHOLD:
             return "Average"
         else:
             return "Poor"
