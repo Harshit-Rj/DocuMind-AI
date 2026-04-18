@@ -8,8 +8,17 @@ from langchain_community.vectorstores import FAISS
 
 load_dotenv()
 
+_ensure_folders_exist()
+
 DATA_PATH = "documents/"
 DB_PATH = "vector_store/"
+
+
+def _ensure_folders_exist():
+    folders = [DATA_PATH.rstrip("/"), DB_PATH.rstrip("/")]
+    for folder in folders:
+        if not os.path.exists(folder):
+            os.makedirs(folder, exist_ok=True)
 
 
 def _validate_openai_api_key():

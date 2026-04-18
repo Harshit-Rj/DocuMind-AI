@@ -6,6 +6,13 @@ from backend.rag_chain import ask
 load_dotenv()
 
 
+def _ensure_folders_exist():
+    folders = ["documents", "vector_store"]
+    for folder in folders:
+        if not os.path.exists(folder):
+            os.makedirs(folder, exist_ok=True)
+
+
 def _validate_openai_api_key():
     api_key = os.getenv("OPENAI_API_KEY")
     if not api_key:
@@ -14,6 +21,9 @@ def _validate_openai_api_key():
             "Add a valid OpenAI key and restart the app."
         )
         st.stop()
+
+
+_ensure_folders_exist()
 
 
 _validate_openai_api_key()
