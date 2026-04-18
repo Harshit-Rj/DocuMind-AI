@@ -117,7 +117,7 @@ dmypy.json
 vector_store/
 
 # Documents (user-uploaded files)
-documents/
+documents/*
 
 # IDEs
 .vscode/
