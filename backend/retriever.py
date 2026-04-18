@@ -18,22 +18,37 @@ def _ensure_vector_store_exists():
 
 
 def get_retriever(filter_source=None):
-    _ensure_vector_store_exists()
+    try:
+        _ensure_vector_store_exists()
+    except RuntimeError as e:
+        raise RuntimeError(f"Vector store check failed: {e}")
 
-    embeddings = OpenAIEmbeddings()
-    db = FAISS.load_local(DB_PATH, embeddings, allow_dangerous_deserialization=True)
+    try:
+        embeddings = OpenAIEmbeddings()
+    except Exception as e:
+        raise RuntimeError(f"Failed to initialize embeddings: {e}")
+    
+    try:
+        db = FAISS.load_local(DB_PATH, embeddings, allow_dangerous_deserialization=True)
+    except FileNotFoundError as e:
+        raise RuntimeError(f"Vector store files not found: {e}")
+    except Exception as e:
+        raise RuntimeError(f"Failed to load vector store: {e}")
 
-    search_kwargs = {
-        "k": 5,
-        "fetch_k": 10
-    }
+    try:
+        search_kwargs = {
+            "k": 5,
+            "fetch_k": 10
+        }
 
-    if filter_source:
-        search_kwargs["filter"] = {"source": filter_source}
+        if filter_source:
+            search_kwargs["filter"] = {"source": filter_source}
 
-    retriever = db.as_retriever(
-        search_type="mmr",   # 🔥 better than similarity
-        search_kwargs=search_kwargs
-    )
-
-    return retriever
+        retriever = db.as_retriever(
+            search_type="mmr",   # better than similarity
+            search_kwargs=search_kwargs
+        )
+        
+        return retriever
+    except Exception as e:
+        raise RuntimeError(f"Failed to create retriever: {e}")
