@@ -114,7 +114,7 @@ dmypy.json
 .pyre/
 
 # Vector store (FAISS)
-vector_store/
+vector_store/*
 
 # Documents (user-uploaded files)
 documents/*
