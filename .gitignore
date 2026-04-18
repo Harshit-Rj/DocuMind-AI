@@ -116,6 +116,9 @@ dmypy.json
 # Vector store (FAISS)
 vector_store/
 
+# Documents (user-uploaded files)
+documents/
+
 # IDEs
 .vscode/
 .idea/
